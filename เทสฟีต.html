@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hook & Thumbnail Simulator v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.4.0/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0d0d0f;--surface:#141417;--surface2:#1c1c21;--surface3:#242429;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#f0f0f2;--text2:#9090a0;--text3:#585868;
+  --accent:#5b8fff;--accent2:#3d6eee;--accent-dim:rgba(91,143,255,0.12);
+  --green:#3ecf8e;--green-dim:rgba(62,207,142,0.12);
+  --amber:#f0b429;--amber-dim:rgba(240,180,41,0.12);
+  --red:#f87171;--red-dim:rgba(248,113,113,0.12);
+  --pink:#f472b6;--pink-dim:rgba(244,114,182,0.12);
+  --radius:10px;--radius-lg:14px;
+  --font:'Sarabun',sans-serif;--mono:'Space Mono',monospace;
+}
+html.light{
+  --bg:#f4f5f7;--surface:#ffffff;--surface2:#f0f1f4;--surface3:#e4e5ea;
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.15);
+  --text:#111118;--text2:#50526a;--text3:#9092aa;
+  --accent:#2563eb;--accent2:#1d4ed8;--accent-dim:rgba(37,99,235,0.10);
+  --green:#16a34a;--green-dim:rgba(22,163,74,0.10);
+  --amber:#b45309;--amber-dim:rgba(180,83,9,0.10);
+  --red:#dc2626;--red-dim:rgba(220,38,38,0.10);
+  --pink:#db2777;--pink-dim:rgba(219,39,119,0.10);
+}
+*,html{transition:background-color .2s,border-color .2s,color .15s;}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5}
+body{display:flex;flex-direction:column;min-height:100vh}
+header{padding:14px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:200;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:30px;height:30px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff}
+.logo-text{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text)}
+.logo-text em{color:var(--accent);font-style:normal}
+.hbadge{font-size:10px;color:var(--accent);background:var(--accent-dim);padding:3px 8px;border-radius:20px;border:1px solid rgba(91,143,255,0.2);font-family:var(--mono)}
+main{display:grid;grid-template-columns:290px 1fr;flex:1;overflow:hidden;height:calc(100vh - 53px)}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.sidebar::-webkit-scrollbar{width:3px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px}
+.sec{padding:14px 16px;border-bottom:1px solid var(--border)}
+.sec-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;display:flex;align-items:center;gap:5px}
+.fl{display:flex;flex-direction:column;gap:7px}
+.lbl{font-size:11px;color:var(--text2);margin-bottom:2px}
+.plat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+.pb{padding:6px 3px;font-size:10px;font-weight:500;border:1px solid var(--border2);border-radius:8px;background:var(--surface2);color:var(--text2);cursor:pointer;text-align:center;transition:all .15s;font-family:var(--font);line-height:1.3}
+.pb i{display:block;font-size:14px;margin-bottom:1px}
+.pb:hover{border-color:var(--accent);color:var(--accent)}
+.pb.on{background:var(--accent-dim);color:var(--accent);border-color:rgba(91,143,255,0.4);font-weight:600}
+.dz{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:12px 8px;text-align:center;cursor:pointer;position:relative;background:var(--surface2);transition:all .2s}
+.dz:hover,.dz.drag{border-color:var(--accent);background:var(--accent-dim)}
+.dz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dz i{font-size:20px;color:var(--text3);display:block;margin-bottom:3px}
+.dz-text{font-size:10px;color:var(--text2)}
+.thumb-prev{width:100%;height:60px;object-fit:cover;border-radius:8px;display:none;border:1px solid var(--border2)}
+input[type=text],select{width:100%;padding:7px 9px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-family:var(--font);transition:border-color .15s;outline:none}
+input[type=text]:focus,select:focus{border-color:var(--accent)}
+input[type=text]::placeholder{color:var(--text3)}
+.cc{font-size:9px;color:var(--text3);text-align:right;margin-top:1px}
+.cc.warn{color:var(--amber)}
+.tog-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0}
+.tog-label{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px}
+.tog{position:relative;width:32px;height:18px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0;position:absolute}
+.ts{position:absolute;inset:0;background:var(--surface3);border-radius:9px;cursor:pointer;transition:.2s;border:1px solid var(--border2)}
+.ts:before{content:'';position:absolute;width:12px;height:12px;left:2px;top:2px;background:var(--text3);border-radius:50%;transition:.2s}
+.tog input:checked+.ts{background:var(--accent);border-color:var(--accent)}
+.tog input:checked+.ts:before{transform:translateX(14px);background:#fff}
+.btn{width:100%;padding:8px;font-size:11px;font-weight:600;border:1px solid var(--border2);border-radius:var(--radius);background:var(--surface2);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;font-family:var(--font)}
+.btn:hover{background:var(--surface3)}
+.btn.accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.accent:hover{background:var(--accent2)}
+.btn.green{background:var(--green-dim);color:var(--green);border-color:rgba(62,207,142,0.3)}
+.btn.green:hover{background:rgba(62,207,142,0.2)}
+.btn i{font-size:13px}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.content{display:flex;flex-direction:column;overflow:hidden}
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;flex-shrink:0;overflow-x:auto}
+.tabs::-webkit-scrollbar{height:0}
+.tab{padding:11px 14px;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:var(--font)}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.tab i{font-size:13px}
+.tab-pane{display:none;flex:1;overflow-y:auto;padding:18px}
+.tab-pane.on{display:block}
+.tab-pane::-webkit-scrollbar{width:3px}
+.tab-pane::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px}
+.feed-label{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.feed-label-text{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:6px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.live-badge{font-size:10px;color:var(--green);display:flex;align-items:center;gap:4px}
+.av{border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:600}
+.mine-badge{position:absolute;top:5px;left:5px;background:var(--accent);color:#fff;font-size:7px;padding:2px 5px;border-radius:3px;font-weight:700;z-index:2;font-family:var(--mono)}
+.dur-badge{position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,.85);color:#fff;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;font-family:var(--mono)}
+/* YT Desktop */
+.yt-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.ytd-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.ytd-card.mine{border-color:rgba(91,143,255,.4);box-shadow:0 0 0 1px rgba(91,143,255,.12)}
+.ytd-tw{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--surface2)}
+.ytd-tw img{width:100%;height:100%;object-fit:cover}
+.ytd-info{padding:8px}
+.ytd-meta{display:flex;gap:6px;align-items:flex-start}
+.ytd-ttl{font-size:11px;font-weight:600;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.35;margin-bottom:2px}
+.ytd-sub{font-size:9px;color:var(--text3)}
+/* YT Mobile */
+.ytm-wrap{max-width:360px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.ytm-card{border-bottom:1px solid var(--border)}
+.ytm-card:last-child{border-bottom:none}
+.ytm-card.mine{background:rgba(91,143,255,.04)}
+.ytm-tw{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--surface2)}
+.ytm-tw img{width:100%;height:100%;object-fit:cover}
+.ytm-body{display:flex;gap:7px;padding:8px}
+.ytm-ttl{font-size:11px;font-weight:600;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.35}
+.ytm-sub{font-size:9px;color:var(--text3);margin-top:2px}
+/* TikTok */
+.tk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;max-width:460px;margin:0 auto}
+.tk-card{position:relative;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:var(--surface2)}
+.tk-card.mine{box-shadow:0 0 0 2px var(--accent)}
+.tk-card img{width:100%;height:100%;object-fit:cover}
+.tk-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 55%)}
+.tk-acts{position:absolute;right:5px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:9px;align-items:center}
+.tk-a{display:flex;flex-direction:column;align-items:center;gap:1px}
+.tk-a i{font-size:18px;color:#fff}
+.tk-a span{font-size:7px;color:rgba(255,255,255,.8)}
+.tk-cap{position:absolute;bottom:7px;left:6px;right:38px;color:#fff;font-size:8px;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* Instagram */
+.ig-stories{display:flex;gap:10px;justify-content:center;margin-bottom:14px}
+.story-circle{width:64px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.story-ring{width:60px;height:60px;border-radius:50%;padding:2px;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)}
+.story-ring.mine{background:linear-gradient(135deg,#5b8fff,#3d6eee)}
+.story-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;border:2px solid var(--surface2)}
+.story-inner img{width:100%;height:100%;object-fit:cover}
+.story-name{font-size:9px;color:var(--text2);text-align:center;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ig-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;max-width:400px;margin:0 auto;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.ig-cell{position:relative;aspect-ratio:1;overflow:hidden;background:var(--surface2)}
+.ig-cell img{width:100%;height:100%;object-fit:cover}
+.ig-cell.mine{box-shadow:inset 0 0 0 2px var(--accent)}
+.ig-mine-ov{position:absolute;inset:0;border:2px solid var(--accent);pointer-events:none;z-index:2}
+/* Facebook */
+.fb-feed{max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.fb-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.fb-card.mine{border-color:rgba(91,143,255,.4)}
+.fb-header{display:flex;align-items:center;gap:8px;padding:10px 12px}
+.fb-name{font-size:12px;font-weight:600;color:var(--text)}
+.fb-time{font-size:10px;color:var(--text3)}
+.fb-img{width:100%;aspect-ratio:16/9;overflow:hidden;background:var(--surface2);position:relative}
+.fb-img img{width:100%;height:100%;object-fit:cover}
+.fb-body{padding:8px 12px}
+.fb-ttl{font-size:12px;font-weight:600;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fb-actions{display:flex;border-top:1px solid var(--border)}
+.fb-act{flex:1;padding:6px;font-size:10px;color:var(--text2);display:flex;align-items:center;justify-content:center;gap:4px}
+.fb-act i{font-size:13px}
+/* A/B */
+.ab-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ab-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.ab-header{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ab-label{font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px}
+.ab-sbadge{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:6px;font-weight:700}
+.ab-sbadge.a{background:var(--accent-dim);color:var(--accent)}
+.ab-sbadge.b{background:var(--pink-dim);color:var(--pink)}
+.ab-body{padding:13px;display:flex;flex-direction:column;gap:9px}
+.ab-tw{aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:var(--surface2);position:relative}
+.ab-tw img{width:100%;height:100%;object-fit:cover}
+.ab-ttl{font-size:12px;font-weight:600;color:var(--text);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ab-meta{font-size:10px;color:var(--text3)}
+.ab-bar-bg{height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-top:3px}
+.ab-bar-fill{height:100%;border-radius:3px;transition:width .5s}
+.ab-inputs{padding:13px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:7px}
+.ab-winner{text-align:center;padding:11px;border-radius:var(--radius);font-size:12px;font-weight:600;display:none;margin-top:12px;border:1px solid}
+/* Score */
+.score-wrap{display:flex;flex-direction:column;gap:14px}
+.score-hero{display:flex;align-items:center;gap:18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px}
+.score-detail h2{font-size:20px;font-weight:700;margin-bottom:3px}
+.score-detail p{font-size:11px;color:var(--text2);line-height:1.6}
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px}
+.metric-name{font-size:10px;color:var(--text2);margin-bottom:5px}
+.metric-bg{height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-bottom:4px}
+.metric-fill{height:100%;border-radius:3px;transition:width .5s}
+.metric-val{font-size:12px;font-weight:700;color:var(--text);font-family:var(--mono)}
+.tips{display:flex;flex-direction:column;gap:5px}
+.tip{display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border-radius:var(--radius);font-size:11px;line-height:1.5}
+.tip.good{background:var(--green-dim);color:#6ee7b7;border:1px solid rgba(62,207,142,.15)}
+.tip.mid{background:var(--amber-dim);color:#fcd34d;border:1px solid rgba(240,180,41,.15)}
+.tip.bad{background:var(--red-dim);color:#fca5a5;border:1px solid rgba(248,113,113,.15)}
+.tip i{font-size:13px;flex-shrink:0;margin-top:1px}
+.score-empty{text-align:center;padding:50px 20px;color:var(--text3)}
+.score-empty i{font-size:36px;display:block;margin-bottom:10px}
+/* Hooks */
+.hooks-intro{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;font-size:11px;color:var(--text2);line-height:1.7;margin-bottom:12px}
+.hooks-tbl{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.hooks-tbl table{width:100%;border-collapse:collapse;font-size:11px}
+.hooks-tbl th{padding:9px 12px;text-align:left;font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;background:var(--surface2);border-bottom:1px solid var(--border)}
+.hooks-tbl td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:top;line-height:1.5}
+.hooks-tbl tr:last-child td{border-bottom:none}
+.hooks-tbl tr.match td{background:rgba(91,143,255,.05)}
+.hooks-tbl tr.match td:first-child{border-left:2px solid var(--accent)}
+.s-pill{display:inline-block;padding:2px 7px;border-radius:20px;font-size:8px;font-weight:700;font-family:var(--mono)}
+.s-high{background:var(--green-dim);color:var(--green)}
+.s-mid{background:var(--amber-dim);color:var(--amber)}
+.s-low{background:var(--red-dim);color:var(--red)}
+.match-tag{display:inline-block;margin-left:4px;font-size:7px;background:var(--accent-dim);color:var(--accent);padding:1px 4px;border-radius:3px;font-weight:700;vertical-align:middle;font-family:var(--mono)}
+/* Presets */
+.preset-save-row{display:grid;grid-template-columns:1fr auto;gap:6px;margin-bottom:8px}
+.preset-list{display:flex;flex-direction:column;gap:5px;max-height:200px;overflow-y:auto}
+.preset-list::-webkit-scrollbar{width:3px}
+.preset-list::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px}
+.preset-item{display:flex;align-items:center;gap:6px;padding:7px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:border-color .15s}
+.preset-item:hover{border-color:var(--border2)}
+.preset-title{font-size:11px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.preset-score{font-size:9px;font-family:var(--mono);color:var(--accent)}
+.preset-del{font-size:13px;color:var(--text3);cursor:pointer;background:none;border:none;padding:2px;line-height:1;transition:color .15s}
+.preset-del:hover{color:var(--red)}
+.preset-empty{font-size:11px;color:var(--text3);text-align:center;padding:12px;background:var(--surface2);border-radius:var(--radius)}
+/* Theme toggle button */
+.theme-btn{background:none;border:1px solid var(--border2);border-radius:8px;padding:5px 9px;cursor:pointer;color:var(--text2);display:flex;align-items:center;gap:6px;transition:all .15s;font-family:var(--font);font-size:11px;font-weight:500}
+.theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+/* History */
+.hist-empty{text-align:center;padding:50px 20px;color:var(--text3)}
+.hist-empty i{font-size:36px;display:block;margin-bottom:10px}
+.hist-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.hist-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center}
+.hist-stat-val{font-size:22px;font-weight:700;font-family:var(--mono);color:var(--accent)}
+.hist-stat-lbl{font-size:10px;color:var(--text3);margin-top:2px}
+.hist-chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px}
+.hist-chart-title{font-size:11px;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.hist-chart{display:flex;align-items:flex-end;gap:5px;height:100px}
+.hist-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.hist-bar{width:100%;border-radius:4px 4px 0 0;transition:height .4s;cursor:pointer;position:relative;min-height:4px}
+.hist-bar:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--surface3);color:var(--text);font-size:9px;padding:3px 6px;border-radius:4px;white-space:nowrap;border:1px solid var(--border2);pointer-events:none;z-index:10}
+.hist-bar-lbl{font-size:8px;color:var(--text3);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
+.hist-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.hist-list table{width:100%;border-collapse:collapse;font-size:11px}
+.hist-list th{padding:8px 12px;text-align:left;font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;background:var(--surface2);border-bottom:1px solid var(--border)}
+.hist-list td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+.hist-list tr:last-child td{border-bottom:none}
+.hist-list tr:hover td{background:rgba(0,0,0,0.02)}
+.hist-grade{display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:6px;font-size:10px;font-weight:700;font-family:var(--mono)}
+.hist-del{background:none;border:none;color:var(--text3);cursor:pointer;padding:2px 4px;transition:color .15s;font-size:13px}
+.hist-del:hover{color:var(--red)}
+.hist-trend{display:inline-flex;align-items:center;gap:2px;font-size:10px;font-family:var(--mono)}
+.trend-up{color:var(--green)}.trend-dn{color:var(--red)}.trend-eq{color:var(--text3)}
+.clear-hist-btn{font-size:10px;color:var(--text3);background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;transition:color .15s;font-family:var(--font)}
+.clear-hist-btn:hover{color:var(--red)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon"><i class="ti ti-chart-bar"></i></div>
+    <div class="logo-text">Hook<em>&</em>Thumb <span style="color:var(--text3);font-weight:400">Simulator</span></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()"><i class="ti ti-sun" id="theme-icon"></i> Light</button>
+    <div class="hbadge">v4.0 · 5 Platforms</div>
+  </div>
+</header>
+
+<main>
+<aside class="sidebar">
+  <div class="sec">
+    <div class="sec-title"><i class="ti ti-device-desktop"></i> แพลตฟอร์ม</div>
+    <div class="plat-grid">
+      <button class="pb on" onclick="setPlatform('ytd',this)"><i class="ti ti-brand-youtube"></i>YT Desktop</button>
+      <button class="pb" onclick="setPlatform('ytm',this)"><i class="ti ti-device-mobile"></i>YT Mobile</button>
+      <button class="pb" onclick="setPlatform('tiktok',this)"><i class="ti ti-brand-tiktok"></i>TikTok</button>
+      <button class="pb" onclick="setPlatform('ig',this)"><i class="ti ti-brand-instagram"></i>Instagram</button>
+      <button class="pb" onclick="setPlatform('fb',this)"><i class="ti ti-brand-facebook"></i>Facebook</button>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title"><i class="ti ti-photo"></i> ปกคลิป</div>
+    <div class="fl">
+      <div class="dz" id="dz" ondragover="dzDrag(event,true)" ondragleave="dzDrag(event,false)" ondrop="dzDrop(event)">
+        <input type="file" accept="image/*" id="tf" onchange="handleThumb(this)">
+        <i class="ti ti-photo-up"></i>
+        <div class="dz-text">คลิกหรือลากไฟล์รูปมาวาง</div>
+      </div>
+      <img class="thumb-prev" id="tprev" alt="preview">
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title"><i class="ti ti-pencil"></i> ข้อมูลคลิป</div>
+    <div class="fl">
+      <div>
+        <div class="lbl">ชื่อคลิป (Title)</div>
+        <input type="text" id="ti" placeholder="ชื่อคลิปของคุณ..." oninput="update()" maxlength="100">
+        <div class="cc" id="cc">0 / 100</div>
+      </div>
+      <div><div class="lbl">ชื่อช่อง / เพจ</div><input type="text" id="ci" oninput="update()" value="ช่องของคุณ"></div>
+      <div><div class="lbl">ความยาวคลิป</div><input type="text" id="di" oninput="update()" value="10:25"></div>
+      <div><div class="lbl">ยอดวิว / ยอดไลก์</div><input type="text" id="vi" oninput="update()" value="1.2M"></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title"><i class="ti ti-settings"></i> ตัวเลือก</div>
+    <div class="tog-row">
+      <span class="tog-label"><i class="ti ti-shield-check"></i> Safe Zone Overlay</span>
+      <label class="tog"><input type="checkbox" id="sz" onchange="update()"><span class="ts"></span></label>
+    </div>
+    <div class="tog-row">
+      <span class="tog-label"><i class="ti ti-arrows-shuffle"></i> สับเปลี่ยนคู่แข่ง</span>
+      <label class="tog"><input type="checkbox" id="sh" onchange="shuffle()"><span class="ts"></span></label>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title"><i class="ti ti-bookmark"></i> Presets</div>
+    <div class="preset-save-row">
+      <input type="text" id="pname" placeholder="ชื่อ Preset...">
+      <button class="btn green" style="width:auto;padding:7px 10px" onclick="savePreset()" title="บันทึก Preset"><i class="ti ti-device-floppy"></i></button>
+    </div>
+    <div class="preset-list" id="plist"></div>
+  </div>
+
+  <div class="sec" style="display:flex;flex-direction:column;gap:6px">
+    <button class="btn accent" onclick="analyzeScore()"><i class="ti ti-sparkles"></i> วิเคราะห์ CTR Score</button>
+    <div class="btn-row">
+      <button class="btn" onclick="downloadFeed()"><i class="ti ti-photo-down"></i> PNG</button>
+      <button class="btn" onclick="exportPDF()"><i class="ti ti-file-type-pdf"></i> PDF</button>
+    </div>
+  </div>
+</aside>
+
+<div class="content">
+  <div class="tabs">
+    <div class="tab on" data-tab="feed" onclick="switchTab('feed',this)"><i class="ti ti-layout-grid"></i> ฟีดจำลอง</div>
+    <div class="tab" data-tab="ab" onclick="switchTab('ab',this)"><i class="ti ti-columns"></i> A/B Test</div>
+    <div class="tab" data-tab="score" onclick="switchTab('score',this)"><i class="ti ti-chart-bar"></i> CTR Score</div>
+    <div class="tab" data-tab="hooks" onclick="switchTab('hooks',this)"><i class="ti ti-list-check"></i> Hook Formula</div>
+    <div class="tab" data-tab="history" onclick="switchTab('history',this)"><i class="ti ti-history"></i> History</div>
+  </div>
+
+  <div class="tab-pane on" id="feed-pane">
+    <div class="feed-label">
+      <div class="feed-label-text" id="flabel"><i class="ti ti-layout-grid"></i> YouTube Desktop Feed</div>
+      <div class="live-badge"><div class="live-dot"></div> Live Preview</div>
+    </div>
+    <div id="fc"></div>
+  </div>
+
+  <div class="tab-pane" id="ab-pane">
+    <div style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px">A/B Test — เปรียบ 2 ปกพร้อมกัน</div>
+      <div style="font-size:11px;color:var(--text2)">กรอก Version B ด้านขวา แล้วกด "เปรียบเทียบ" เพื่อดูว่าแบบไหนมีโอกาส CTR สูงกว่า</div>
+    </div>
+    <div class="ab-wrap">
+      <div class="ab-panel">
+        <div class="ab-header">
+          <div class="ab-label" style="color:var(--accent)"><i class="ti ti-letter-a"></i> Version A <span style="font-size:9px;color:var(--text3);font-weight:400">(จาก Panel ซ้าย)</span></div>
+          <span class="ab-sbadge a" id="ab-sa">—</span>
+        </div>
+        <div class="ab-body">
+          <div class="ab-tw"><img id="ab-img-a" src="" alt="A"><div class="mine-badge">A</div></div>
+          <div class="ab-ttl" id="ab-ta">—</div>
+          <div class="ab-meta" id="ab-ma">—</div>
+          <div style="margin-top:4px"><div style="font-size:9px;color:var(--text3);margin-bottom:3px">CTR Score</div><div class="ab-bar-bg"><div class="ab-bar-fill" id="ab-ba" style="width:0%;background:var(--accent)"></div></div></div>
+        </div>
+      </div>
+      <div class="ab-panel">
+        <div class="ab-header">
+          <div class="ab-label" style="color:var(--pink)"><i class="ti ti-letter-b"></i> Version B</div>
+          <span class="ab-sbadge b" id="ab-sb">—</span>
+        </div>
+        <div class="ab-body">
+          <div class="ab-tw" style="cursor:pointer">
+            <img id="ab-img-b" src="" alt="B" style="width:100%;height:100%;object-fit:cover">
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45)" id="ab-bov">
+              <label style="cursor:pointer;color:#fff;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:4px">
+                <i class="ti ti-photo-up" style="font-size:20px"></i>อัปโหลดรูปปก B
+                <input type="file" accept="image/*" id="ab-fb" onchange="handleThumbB(this)" style="display:none">
+              </label>
+            </div>
+            <div class="mine-badge" style="background:var(--pink)">B</div>
+          </div>
+          <div class="ab-ttl" id="ab-tb" style="color:var(--text3)">กรอกชื่อคลิป B ด้านล่าง</div>
+          <div class="ab-meta" id="ab-mb">—</div>
+          <div style="margin-top:4px"><div style="font-size:9px;color:var(--text3);margin-bottom:3px">CTR Score</div><div class="ab-bar-bg"><div class="ab-bar-fill" id="ab-bb" style="width:0%;background:var(--pink)"></div></div></div>
+        </div>
+        <div class="ab-inputs">
+          <div><div class="lbl">ชื่อคลิป B</div><input type="text" id="ab-ti-b" placeholder="ชื่อคลิป Version B..." oninput="updateAB()" maxlength="100"></div>
+          <div><div class="lbl">ชื่อช่อง B</div><input type="text" id="ab-ci-b" oninput="updateAB()" value="ช่องของคุณ"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ab-winner" id="ab-winner"></div>
+    <div style="margin-top:12px;display:flex;justify-content:center">
+      <button class="btn accent" style="width:auto;padding:9px 24px" onclick="compareAB()"><i class="ti ti-git-compare"></i> เปรียบเทียบ A vs B</button>
+    </div>
+  </div>
+
+  <div class="tab-pane" id="score-pane">
+    <div id="sc"><div class="score-empty"><i class="ti ti-sparkles"></i><p>กดปุ่ม "วิเคราะห์ CTR Score" เพื่อให้ระบบประเมินปกและชื่อคลิปของคุณ</p></div></div>
+  </div>
+
+  <div class="tab-pane" id="hooks-pane">
+    <div class="hooks-intro">ตารางนี้รวม <strong>6 สูตร Hook</strong> ที่ครีเอเตอร์ระดับโลกใช้จริง พร้อม CTR เฉลี่ยแต่ละแบบ <span style="color:var(--accent)">แถวสีน้ำเงิน</span> = สูตรที่ชื่อคลิปของคุณตรง pattern นั้น</div>
+    <div class="hooks-tbl"><table><thead><tr><th>สูตร Hook</th><th>ตัวอย่าง</th><th>CTR เฉลี่ย</th><th>ระดับ</th></tr></thead><tbody id="hooks-body"></tbody></table></div>
+  </div>
+
+  <div class="tab-pane" id="history-pane">
+    <div id="hist-root"></div>
+  </div>
+</div>
+</main>
+
+<script>
+const AVC=['#1d4ed8','#166534','#92400e','#9d174d','#6d28d9','#991b1b','#0369a1'];
+const AVB=['#dbeafe','#dcfce7','#fef3c7','#fce7f3','#ede9fe','#fee2e2','#e0f2fe'];
+const PH=sp('#1c1c21','#585868','ปกของคุณ');
+const PHB=sp('#211c2d','#7a5080','ปก B');
+
+function sp(bg,fg,t){return 'data:image/svg+xml,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="${bg}"/><text x="50%" y="50%" font-family="sans-serif" font-size="12" fill="${fg}" text-anchor="middle" dominant-baseline="middle">${t}</text></svg>`);}
+function ct(c){return 'data:image/svg+xml,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="${c.c}"/><text x="50%" y="50%" font-family="sans-serif" font-size="11" fill="rgba(255,255,255,0.85)" text-anchor="middle" dominant-baseline="middle" font-weight="bold">${c.ch}</text></svg>`);}
+function av(t,sz=26){const i=t.charCodeAt(0)%AVC.length;return `<div class="av" style="width:${sz}px;height:${sz}px;font-size:${Math.floor(sz*.38)}px;background:${AVB[i]};color:${AVC[i]}">${t.slice(0,2).toUpperCase()}</div>`;}
+
+const comps=[
+  {t:'วิธีทำเงิน 1 แสนบาทแรกออนไลน์ ไม่ต้องลงทุน ทำได้จริง!',ch:'FinanceTH',v:'2.3M',tm:'3 สัปดาห์',d:'18:42',c:'#ef4444'},
+  {t:'เปิดร้านกาแฟ 50,000 บาท คุ้มไหม? ตอบทุกข้อสงสัย!',ch:'StartupTH',v:'890K',tm:'5 วัน',d:'22:15',c:'#f59e0b'},
+  {t:'ChatGPT ทำงานแทนคนได้จริงไหม? ทดสอบ 30 วัน!',ch:'TechReview TH',v:'1.5M',tm:'1 สัปดาห์',d:'14:30',c:'#3b82f6'},
+  {t:'สอน Canva ฟรี! ออกแบบปกคลิปให้ปัง ดูดี ใน 10 นาที',ch:'DesignTH',v:'670K',tm:'2 สัปดาห์',d:'11:55',c:'#8b5cf6'},
+  {t:'เที่ยวญี่ปุ่น 7 วัน ใช้เงินเท่าไหร่? บอกหมด ไม่มีกั๊ก',ch:'TravelLife',v:'4.1M',tm:'1 เดือน',d:'25:08',c:'#ec4899'},
+  {t:'ลดน้ำหนัก 10 กิโล ใน 2 เดือน ทำได้จริง! วิธีนี้เวิร์ค',ch:'HealthGoals',v:'3.2M',tm:'2 เดือน',d:'16:20',c:'#10b981'},
+  {t:'Python ตั้งแต่เริ่มต้น EP.1 สำหรับมือใหม่สุดๆ',ch:'CodeTH',v:'1.1M',tm:'3 เดือน',d:'45:00',c:'#06b6d4'},
+  {t:'รีวิว iPhone 17 Pro คุ้มมั้ยที่จะซื้อ? ตอบทุกข้อสงสัย',ch:'GadgetTH',v:'5.8M',tm:'2 วัน',d:'19:33',c:'#f97316'},
+];
+
+const hooks=[
+  {name:'ตัวเลข + ประโยชน์',ex:'5 วิธีเพิ่มยอดวิวใน 30 วัน',s:'high',ctr:'7–12%',note:'ชัดเจน วัดได้ ดึงดูด',test:t=>/\d/.test(t)},
+  {name:'คำถาม + ความอยากรู้',ex:'ทำไมช่องนี้ถึงได้ล้านวิว โดยไม่มีสคริปต์?',s:'high',ctr:'6–11%',note:'กระตุ้น curiosity gap',test:t=>/\?/.test(t)},
+  {name:'ขัดแย้งกับความเชื่อ',ex:'หยุดทำ Thumbnail สวย! มันฆ่ายอดวิวคุณ',s:'high',ctr:'8–14%',note:'ช็อกก่อน อธิบายทีหลัง',test:t=>['หยุด','อย่า','ผิด','ไม่ต้อง'].some(w=>t.includes(w))},
+  {name:'ก่อน/หลัง + ผลลัพธ์',ex:'จาก 0 สู่ 100K subscribers ภายใน 6 เดือน',s:'mid',ctr:'5–9%',note:'น่าเชื่อถือ ต้องมีหลักฐาน',test:t=>['จาก','สู่','ก่อน','หลัง'].some(w=>t.includes(w))},
+  {name:'เปิดเผยความลับ',ex:'สิ่งที่ YouTuber ดังไม่เคยบอกคุณเรื่องอัลกอริทึม',s:'mid',ctr:'5–8%',note:'ทำงานดีถ้าเฉพาะเจาะจง',test:t=>['ลับ','เปิดเผย','ไม่เคยบอก','ความจริง'].some(w=>t.includes(w))},
+  {name:'บอกชื่อเรื่อง + อธิบาย',ex:'รีวิว Canon R50: กล้องที่ดีที่สุดสำหรับ YouTuber มือใหม่',s:'low',ctr:'2–4%',note:'ขาด hook ต้องพึ่งปกอย่างเดียว',test:()=>false},
+];
+
+let plat='ytd',thumbURL=null,thumbURLB=null,shuffled=[...comps],myIdx=2;
+let presets=[];
+try{presets=JSON.parse(localStorage.getItem('hts3_presets')||'[]');}catch(e){}
+
+function safeYT(d){return `<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:flex-end;padding:5px;pointer-events:none"><div style="background:rgba(91,143,255,.85);color:#fff;font-size:8px;padding:2px 5px;border-radius:3px;display:flex;align-items:center;gap:2px"><i class="ti ti-alert-triangle" style="font-size:9px"></i>${d}</div></div>`;}
+function safeTK(){return `<div style="position:absolute;right:0;top:0;bottom:0;width:38px;background:rgba(91,143,255,.18);display:flex;align-items:center;justify-content:center;pointer-events:none"><span style="font-size:6px;color:rgba(255,255,255,.9);writing-mode:vertical-rl">⚠ ปุ่มระบบ</span></div>`;}
+
+function setPlatform(p,btn){
+  plat=p;document.querySelectorAll('.pb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+  const L={ytd:'YouTube Desktop Feed',ytm:'YouTube Mobile Feed',tiktok:'TikTok Feed',ig:'Instagram Feed',fb:'Facebook Feed'};
+  const I={ytd:'ti-layout-grid',ytm:'ti-device-mobile',tiktok:'ti-brand-tiktok',ig:'ti-brand-instagram',fb:'ti-brand-facebook'};
+  document.getElementById('flabel').innerHTML=`<i class="ti ${I[p]}"></i> ${L[p]}`;update();
+}
+
+function dzDrag(e,on){e.preventDefault();document.getElementById('dz').classList.toggle('drag',on);}
+function dzDrop(e){e.preventDefault();document.getElementById('dz').classList.remove('drag');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/')){setThumb(f);};}
+function handleThumb(inp){if(inp.files[0])setThumb(inp.files[0]);}
+function setThumb(f){
+  if(thumbURL)URL.revokeObjectURL(thumbURL);
+  thumbURL=URL.createObjectURL(f);
+  const p=document.getElementById('tprev');p.src=thumbURL;p.style.display='block';
+  document.querySelector('#dz .dz-text').textContent=f.name;
+  update();updateAB();
+}
+function handleThumbB(inp){
+  if(!inp.files[0])return;
+  if(thumbURLB)URL.revokeObjectURL(thumbURLB);
+  thumbURLB=URL.createObjectURL(inp.files[0]);
+  document.getElementById('ab-img-b').src=thumbURLB;
+  document.getElementById('ab-bov').style.display='none';
+  updateAB();
+}
+
+function shuffle(){shuffled=[...comps].sort(()=>Math.random()-.5);myIdx=Math.floor(Math.random()*4);update();}
+
+function switchTab(t,el){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));el.classList.add('on');
+  document.querySelectorAll('.tab-pane').forEach(x=>x.classList.remove('on'));
+  document.getElementById(t+'-pane').classList.add('on');
+  if(t==='hooks')renderHooks();
+  if(t==='ab')updateAB();
+  if(t==='history')renderHistory();
+}
+
+function update(){
+  const title=document.getElementById('ti').value||'ชื่อคลิปของคุณ';
+  const ch=document.getElementById('ci').value||'ช่องของคุณ';
+  const dur=document.getElementById('di').value||'0:00';
+  const safe=document.getElementById('sz').checked;
+  const raw=document.getElementById('ti').value;
+  const cc=document.getElementById('cc');cc.textContent=`${raw.length} / 100`;cc.className='cc'+(raw.length>60?' warn':'');
+  const fc=document.getElementById('fc');
+  if(plat==='ytd')rYTD(fc,title,ch,dur,safe);
+  else if(plat==='ytm')rYTM(fc,title,ch,dur,safe);
+  else if(plat==='tiktok')rTK(fc,title,ch,safe);
+  else if(plat==='ig')rIG(fc,title,ch);
+  else rFB(fc,title,ch);
+}
+
+function rYTD(fc,title,ch,dur,safe){
+  const img=thumbURL||PH;const ov=safe?safeYT(dur):'';
+  let h='<div class="yt-grid">';let ci=0;
+  for(let i=0;i<8;i++){
+    if(i===myIdx){h+=`<div class="ytd-card mine"><div class="ytd-tw"><div class="mine-badge">ของคุณ</div><img src="${img}" alt="t"><div class="dur-badge">${dur}</div>${ov}</div><div class="ytd-info"><div class="ytd-meta">${av(ch)}<div style="flex:1;min-width:0"><div class="ytd-ttl">${title}</div><div class="ytd-sub">${ch} · เพิ่งอัปโหลด</div></div></div></div></div>`;}
+    else{const c=shuffled[ci++%shuffled.length];h+=`<div class="ytd-card"><div class="ytd-tw"><img src="${ct(c)}" alt="t"><div class="dur-badge">${c.d}</div></div><div class="ytd-info"><div class="ytd-meta">${av(c.ch)}<div style="flex:1;min-width:0"><div class="ytd-ttl">${c.t}</div><div class="ytd-sub">${c.ch} · ${c.v} · ${c.tm}ก่อน</div></div></div></div></div>`;}
+  }
+  fc.innerHTML=h+'</div>';
+}
+
+function rYTM(fc,title,ch,dur,safe){
+  const img=thumbURL||PH;const ov=safe?safeYT(dur):'';
+  let h='<div class="ytm-wrap">';let ci=0;
+  for(let i=0;i<6;i++){
+    if(i===Math.min(myIdx,2)){h+=`<div class="ytm-card mine"><div class="ytm-tw"><div class="mine-badge">ของคุณ</div><img src="${img}" alt="t"><div class="dur-badge">${dur}</div>${ov}</div><div class="ytm-body">${av(ch,28)}<div><div class="ytm-ttl">${title}</div><div class="ytm-sub">${ch} · เพิ่งอัปโหลด</div></div></div></div>`;}
+    else{const c=shuffled[ci++%shuffled.length];h+=`<div class="ytm-card"><div class="ytm-tw"><img src="${ct(c)}" alt="t"><div class="dur-badge">${c.d}</div></div><div class="ytm-body">${av(c.ch,28)}<div><div class="ytm-ttl">${c.t}</div><div class="ytm-sub">${c.ch} · ${c.v} · ${c.tm}ก่อน</div></div></div></div>`;}
+  }
+  fc.innerHTML=h+'</div>';
+}
+
+function rTK(fc,title,ch,safe){
+  const img=thumbURL||PH;const sov=safe?safeTK():'';
+  let h='<div class="tk-grid">';let ci=0;
+  for(let i=0;i<6;i++){
+    if(i===Math.min(myIdx,3)){h+=`<div class="tk-card mine"><img src="${img}" alt="t"><div class="tk-grad"></div><div class="mine-badge">ของคุณ</div><div class="tk-acts"><div class="tk-a"><i class="ti ti-heart"></i><span>1.2M</span></div><div class="tk-a"><i class="ti ti-message-circle"></i><span>8.4K</span></div><div class="tk-a"><i class="ti ti-share"></i><span>แชร์</span></div></div><div class="tk-cap">${title}</div>${sov}</div>`;}
+    else{const c=shuffled[ci++%shuffled.length];h+=`<div class="tk-card"><img src="${ct(c)}" alt="t"><div class="tk-grad"></div><div class="tk-acts"><div class="tk-a"><i class="ti ti-heart"></i><span>${c.v}</span></div><div class="tk-a"><i class="ti ti-message-circle"></i><span>2.1K</span></div><div class="tk-a"><i class="ti ti-share"></i><span>แชร์</span></div></div><div class="tk-cap">${c.t}</div></div>`;}
+  }
+  fc.innerHTML=h+'</div>';
+}
+
+function rIG(fc,title,ch){
+  const img=thumbURL||PH;
+  let st='<div class="ig-stories">';
+  st+=`<div class="story-circle"><div class="story-ring mine"><div class="story-inner"><img src="${img}" alt="s"></div></div><div class="story-name">${ch}</div></div>`;
+  for(let i=0;i<5;i++){const c=shuffled[i%shuffled.length];st+=`<div class="story-circle"><div class="story-ring"><div class="story-inner"><img src="${ct(c)}" alt="s"></div></div><div class="story-name">${c.ch}</div></div>`;}
+  st+='</div>';
+  let gr='<div class="ig-grid">';let ci=0;
+  for(let i=0;i<9;i++){
+    if(i===myIdx%9){gr+=`<div class="ig-cell mine"><img src="${img}" alt="t"><div class="ig-mine-ov"></div><div class="mine-badge">ของคุณ</div></div>`;}
+    else{const c=shuffled[ci++%shuffled.length];gr+=`<div class="ig-cell"><img src="${ct(c)}" alt="t"></div>`;}
+  }
+  gr+='</div>';
+  fc.innerHTML=`<div style="max-width:400px;margin:0 auto">${st}${gr}</div>`;
+}
+
+function rFB(fc,title,ch){
+  const img=thumbURL||PH;let h='<div class="fb-feed">';let ci=0;
+  for(let i=0;i<5;i++){
+    if(i===Math.min(myIdx,2)){
+      h+=`<div class="fb-card mine"><div class="fb-header">${av(ch,34)}<div><div class="fb-name">${ch}</div><div class="fb-time">เพิ่งโพสต์ · <i class="ti ti-world" style="font-size:9px"></i></div></div></div><div class="fb-img"><img src="${img}" alt="t"><div class="mine-badge">ของคุณ</div></div><div class="fb-body"><div class="fb-ttl">${title}</div></div><div class="fb-actions"><div class="fb-act"><i class="ti ti-thumb-up"></i> ถูกใจ</div><div class="fb-act"><i class="ti ti-message-circle"></i> ความคิดเห็น</div><div class="fb-act"><i class="ti ti-share"></i> แชร์</div></div></div>`;
+    }else{const c=shuffled[ci++%shuffled.length];h+=`<div class="fb-card"><div class="fb-header">${av(c.ch,34)}<div><div class="fb-name">${c.ch}</div><div class="fb-time">${c.tm}ก่อน · <i class="ti ti-world" style="font-size:9px"></i></div></div></div><div class="fb-img"><img src="${ct(c)}" alt="t"></div><div class="fb-body"><div class="fb-ttl">${c.t}</div></div><div class="fb-actions"><div class="fb-act"><i class="ti ti-thumb-up"></i> ถูกใจ</div><div class="fb-act"><i class="ti ti-message-circle"></i> ความคิดเห็น</div><div class="fb-act"><i class="ti ti-share"></i> แชร์</div></div></div>`;}
+  }
+  fc.innerHTML=h+'</div>';
+}
+
+function scoreFor(title,hasPic){
+  const len=title.length;
+  const hw=['วิธี','เคล็ดลับ','ทำไม','อะไร','เปิดเผย','ความลับ','จริงหรือ','คุ้มไหม','ดีไหม','ผิด','ห้ามพลาด','ต้องรู้','น่าตกใจ','เชื่อไหม','ทดสอบ','รีวิว'];
+  const ew=['!','?','ตกใจ','สุด','ปัง','เด็ด','โคตร','ที่สุด','ดีมาก'];
+  let ls=0;
+  if(len>=20&&len<=60)ls=100;else if(len>0&&len<20)ls=50;else if(len>60&&len<=80)ls=65;else if(len>80)ls=40;
+  const hs=hw.some(w=>title.includes(w))?90:45;
+  const ns=/\d/.test(title)?100:50;
+  const es=ew.some(w=>title.includes(w))?85:55;
+  const ts=hasPic?100:30;
+  return{ls,hs,ns,es,ts,total:Math.round(ls*.2+hs*.25+ns*.15+es*.15+ts*.25),hasPic,len};
+}
+
+function updateAB(){
+  const titleA=document.getElementById('ti').value||'ชื่อคลิป A';
+  const chA=document.getElementById('ci').value||'ช่องของคุณ';
+  const titleB=document.getElementById('ab-ti-b').value||'ชื่อคลิป B';
+  const chB=document.getElementById('ab-ci-b').value||'ช่องของคุณ';
+  document.getElementById('ab-img-a').src=thumbURL||PH;
+  document.getElementById('ab-ta').textContent=titleA;
+  document.getElementById('ab-ma').textContent=chA;
+  document.getElementById('ab-tb').textContent=titleB||'กรอกชื่อคลิป B ด้านล่าง';
+  document.getElementById('ab-mb').textContent=chB;
+  if(!thumbURLB)document.getElementById('ab-img-b').src=PHB;
+}
+
+function compareAB(){
+  const titleA=document.getElementById('ti').value;
+  const titleB=document.getElementById('ab-ti-b').value;
+  const rA=scoreFor(titleA,!!thumbURL);const rB=scoreFor(titleB,!!thumbURLB);
+  document.getElementById('ab-sa').textContent=rA.total+'/100';
+  document.getElementById('ab-sb').textContent=rB.total+'/100';
+  document.getElementById('ab-ba').style.width=rA.total+'%';
+  document.getElementById('ab-bb').style.width=rB.total+'%';
+  const w=document.getElementById('ab-winner');w.style.display='block';
+  const win=rA.total>rB.total?'A':rB.total>rA.total?'B':'เสมอ';
+  if(win==='A'){w.innerHTML=`<i class="ti ti-trophy"></i> Version <strong>A</strong> ชนะ! (${rA.total} vs ${rB.total}) — ชื่อ A มีโอกาส CTR สูงกว่า`;w.style.background='var(--accent-dim)';w.style.color='var(--accent)';w.style.borderColor='rgba(91,143,255,.25)';}
+  else if(win==='B'){w.innerHTML=`<i class="ti ti-trophy"></i> Version <strong>B</strong> ชนะ! (${rB.total} vs ${rA.total}) — ชื่อ B มีโอกาส CTR สูงกว่า`;w.style.background='var(--pink-dim)';w.style.color='var(--pink)';w.style.borderColor='rgba(244,114,182,.25)';}
+  else{w.innerHTML=`<i class="ti ti-equal"></i> เสมอกัน! (${rA.total} vs ${rB.total}) — ลองปรับชื่อใดชื่อหนึ่งเพิ่มเติม`;w.style.background='var(--amber-dim)';w.style.color='var(--amber)';w.style.borderColor='rgba(240,180,41,.25)';}
+}
+
+function analyzeScore(){
+  const r=scoreFor(document.getElementById('ti').value,!!thumbURL);
+  const G=r.total>=80?{g:'A',label:'ปังมาก!',col:'var(--green)'}:r.total>=65?{g:'B',label:'ดี แต่ปรับได้',col:'var(--amber)'}:r.total>=50?{g:'C',label:'ปานกลาง',col:'#f97316'}:{g:'D',label:'ต้องปรับด่วน!',col:'var(--red)'};
+  const mets=[{n:'ความยาวชื่อคลิป',v:r.ls,c:'#5b8fff'},{n:'Hook Word',v:r.hs,c:'var(--green)'},{n:'มีตัวเลข',v:r.ns,c:'var(--amber)'},{n:'อารมณ์ร่วม',v:r.es,c:'#ec4899'},{n:'มีรูปปก',v:r.ts,c:'var(--green)'}];
+  const tips=[];
+  if(!r.hasPic)tips.push({k:'bad',i:'ti-photo-x',m:'ยังไม่ได้ใส่รูปปก — ปกคือสิ่งแรกที่คนเห็น อัปโหลดเลย!'});
+  if(r.len===0)tips.push({k:'bad',i:'ti-pencil-off',m:'ยังไม่ได้พิมพ์ชื่อคลิปเลย'});
+  else if(r.len<20)tips.push({k:'mid',i:'ti-text-size',m:'ชื่อสั้นเกินไป ควรอธิบายให้ชัดขึ้น อย่างน้อย 20 ตัวอักษร'});
+  else if(r.len>60)tips.push({k:'mid',i:'ti-scissors',m:'ชื่อยาวเกิน 60 ตัว อาจโดนตัดบนมือถือ ลองย่อให้กระชับ'});
+  else tips.push({k:'good',i:'ti-check',m:'ความยาวชื่อคลิปอยู่ในช่วงที่เหมาะสม (20–60 ตัว)'});
+  if(r.hs<60)tips.push({k:'mid',i:'ti-hook',m:'ลองใส่คำ Hook เช่น "วิธี", "ทำไม", "เปิดเผย" เพื่อดึงความสนใจ'});
+  else tips.push({k:'good',i:'ti-check',m:'มีคำ Hook ที่ดี ช่วยกระตุ้นให้คนอยากกดคลิก'});
+  if(r.ns<60)tips.push({k:'mid',i:'ti-123',m:'ลองใส่ตัวเลข เช่น "5 วิธี" หรือ "30 วัน" เพื่อเพิ่มความน่าเชื่อถือ'});
+  if(r.es>=80)tips.push({k:'good',i:'ti-mood-happy',m:'มีอารมณ์ร่วมที่ดี คนมักกดคลิปที่สื่ออารมณ์ได้ชัด'});
+  const circ=2*Math.PI*34;const dash=Math.round(circ*r.total/100);
+  const svg=`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" width="88" height="88"><circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/><circle cx="40" cy="40" r="34" fill="none" stroke="${G.col}" stroke-width="8" stroke-dasharray="${dash} 999" stroke-linecap="round" transform="rotate(-90 40 40)"/><text x="40" y="36" font-family="'Space Mono',monospace" font-size="18" font-weight="700" fill="${G.col}" text-anchor="middle" dominant-baseline="middle">${r.total}</text><text x="40" y="54" font-family="'Space Mono',monospace" font-size="10" fill="${G.col}" text-anchor="middle">${G.g}</text></svg>`;
+  const mh=mets.map(m=>`<div class="metric-card"><div class="metric-name">${m.n}</div><div class="metric-bg"><div class="metric-fill" style="width:${m.v}%;background:${m.c}"></div></div><div class="metric-val">${m.v}<span style="font-size:9px;color:var(--text3);font-weight:400">/100</span></div></div>`).join('');
+  const th=tips.map(t=>`<div class="tip ${t.k}"><i class="ti ${t.i}"></i><span>${t.m}</span></div>`).join('');
+  document.getElementById('sc').innerHTML=`<div class="score-wrap"><div class="score-hero">${svg}<div class="score-detail"><h2 style="color:${G.col}">${G.label}</h2><p>CTR Score: <strong style="color:${G.col};font-family:var(--mono)">${r.total}/100</strong><br>ยิ่งสูง ยิ่งมีโอกาสถูกกดดู</p></div></div><div class="metrics-grid">${mh}</div><div class="tips">${th}</div></div>`;
+  addHistory(r);
+  switchTab('score',document.querySelector('[data-tab="score"]'));
+}
+
+function renderHooks(){
+  const title=document.getElementById('ti').value;
+  const sL={high:'สูง',mid:'กลาง',low:'ต่ำ'};const sC={high:'s-high',mid:'s-mid',low:'s-low'};
+  let h='';
+  hooks.forEach(f=>{
+    const match=title.length>0&&f.test(title);
+    h+=`<tr${match?' class="match"':''}><td><strong>${f.name}</strong>${match?'<span class="match-tag">ชื่อคุณ</span>':''}<br><small style="color:var(--text3);font-size:9px">${f.note}</small></td><td style="color:var(--text2);font-size:10px;font-style:italic">${f.ex}</td><td style="font-family:var(--mono);font-size:10px">${f.ctr}</td><td><span class="s-pill ${sC[f.s]}">${sL[f.s]}</span></td></tr>`;
+  });
+  document.getElementById('hooks-body').innerHTML=h;
+}
+
+function savePreset(){
+  const name=document.getElementById('pname').value.trim()||`Preset ${presets.length+1}`;
+  const title=document.getElementById('ti').value;
+  const ch=document.getElementById('ci').value;
+  const dur=document.getElementById('di').value;
+  const score=scoreFor(title,!!thumbURL).total;
+  presets.unshift({name,title,ch,dur,score,id:Date.now()});
+  if(presets.length>20)presets.pop();
+  try{localStorage.setItem('hts3_presets',JSON.stringify(presets));}catch(e){}
+  document.getElementById('pname').value='';
+  renderPresets();
+}
+function loadPreset(id){
+  const p=presets.find(x=>x.id===id);if(!p)return;
+  document.getElementById('ti').value=p.title||'';
+  document.getElementById('ci').value=p.ch||'';
+  document.getElementById('di').value=p.dur||'';
+  update();
+}
+function delPreset(id){
+  presets=presets.filter(x=>x.id!==id);
+  try{localStorage.setItem('hts3_presets',JSON.stringify(presets));}catch(e){}
+  renderPresets();
+}
+function renderPresets(){
+  const el=document.getElementById('plist');
+  if(!presets.length){el.innerHTML='<div class="preset-empty">ยังไม่มี Preset — กรอกข้อมูลแล้วกดบันทึก</div>';return;}
+  el.innerHTML=presets.map(p=>`<div class="preset-item" onclick="loadPreset(${p.id})"><div style="flex:1;min-width:0"><div class="preset-title">${p.name}</div><div style="font-size:9px;color:var(--text3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.title||'—'}</div></div><div class="preset-score">${p.score}</div><button class="preset-del" onclick="event.stopPropagation();delPreset(${p.id})"><i class="ti ti-trash"></i></button></div>`).join('');
+}
+
+function downloadFeed(){
+  const fc=document.getElementById('fc');
+  html2canvas(fc,{scale:2,backgroundColor:'#0d0d0f',useCORS:true,logging:false}).then(c=>{
+    const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download=`hook-feed-${plat}.png`;a.click();
+  }).catch(()=>alert('ไม่สามารถดาวน์โหลดได้'));
+}
+
+async function exportPDF(){
+  const {jsPDF}=window.jspdf;
+  const r=scoreFor(document.getElementById('ti').value,!!thumbURL);
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,M=20;
+  // Header bar
+  doc.setFillColor(20,20,23);doc.rect(0,0,W,32,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(91,143,255);
+  doc.text('Hook & Thumbnail Simulator — Report',M,13);
+  doc.setFontSize(9);doc.setTextColor(144,144,160);
+  const now=new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+  doc.text(`สร้างเมื่อ: ${now}  |  แพลตฟอร์ม: ${{ytd:'YouTube Desktop',ytm:'YouTube Mobile',tiktok:'TikTok',ig:'Instagram',fb:'Facebook'}[plat]}`,M,21);
+  let y=40;
+  // Title block
+  doc.setFillColor(28,28,33);doc.roundedRect(M,y,W-M*2,28,3,3,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(144,144,160);doc.text('ชื่อคลิป (Title)',M+6,y+8);
+  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(240,240,242);
+  const tLines=doc.splitTextToSize(document.getElementById('ti').value||'—',W-M*2-12);doc.text(tLines,M+6,y+16);
+  y+=34;
+  // Info row
+  doc.setFillColor(28,28,33);doc.roundedRect(M,y,W-M*2,16,3,3,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(144,144,160);
+  doc.text('ช่อง:',M+5,y+7);doc.text('ความยาว:',M+72,y+7);doc.text('ยอดวิว:',M+130,y+7);
+  doc.setFont('helvetica','normal');doc.setTextColor(240,240,242);
+  doc.text(document.getElementById('ci').value||'—',M+18,y+7);
+  doc.text(document.getElementById('di').value||'—',M+95,y+7);
+  doc.text(document.getElementById('vi').value||'—',M+148,y+7);
+  y+=24;
+  // Score ring (drawn)
+  const grade=r.total>=80?{g:'A',col:[62,207,142]}:r.total>=65?{g:'B',col:[240,180,41]}:r.total>=50?{g:'C',col:[249,115,22]}:{g:'D',col:[248,113,113]};
+  doc.setFillColor(20,20,23);doc.roundedRect(M,y,W-M*2,38,3,3,'F');
+  doc.setDrawColor(...grade.col);doc.setLineWidth(0.5);doc.roundedRect(M,y,W-M*2,38,3,3,'S');
+  doc.setFont('helvetica','bold');doc.setFontSize(30);doc.setTextColor(...grade.col);
+  doc.text(String(r.total),M+12,y+26);
+  doc.setFontSize(11);doc.setTextColor(144,144,160);doc.text('/100',M+32,y+26);
+  doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(...grade.col);
+  const labels=['ปังมาก!','ดี แต่ปรับได้','ปานกลาง','ต้องปรับด่วน!'];
+  const gi=r.total>=80?0:r.total>=65?1:r.total>=50?2:3;
+  doc.text(`Grade ${grade.g} — ${labels[gi]}`,M+52,y+18);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(144,144,160);
+  doc.text('ยิ่งสูง ยิ่งมีโอกาสถูกกดดู',M+52,y+29);
+  y+=46;
+  // Metric bars
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(240,240,242);doc.text('Metric Breakdown',M,y);y+=7;
+  [{n:'ความยาวชื่อคลิป',v:r.ls,c:[91,143,255]},{n:'Hook Word',v:r.hs,c:[62,207,142]},{n:'มีตัวเลข',v:r.ns,c:[240,180,41]},{n:'อารมณ์ร่วม',v:r.es,c:[236,72,153]},{n:'มีรูปปก',v:r.ts,c:[62,207,142]}].forEach(m=>{
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(144,144,160);doc.text(m.n,M,y+4);
+    doc.setFillColor(36,36,41);doc.roundedRect(M+55,y,75,5,1,1,'F');
+    doc.setFillColor(...m.c);doc.roundedRect(M+55,y,75*m.v/100,5,1,1,'F');
+    doc.setFont('helvetica','bold');doc.setTextColor(240,240,242);doc.text(String(m.v),M+134,y+4);y+=9;
+  });
+  y+=6;
+  // Tips
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(240,240,242);doc.text('คำแนะนำ',M,y);y+=7;
+  const tips=[];
+  if(!r.hasPic)tips.push({k:'bad',m:'ยังไม่ได้ใส่รูปปก — ปกคือสิ่งแรกที่คนเห็น'});
+  if(r.len===0)tips.push({k:'bad',m:'ยังไม่ได้พิมพ์ชื่อคลิปเลย'});
+  else if(r.len<20)tips.push({k:'mid',m:'ชื่อสั้นเกินไป ควรอธิบายให้ชัดขึ้น อย่างน้อย 20 ตัวอักษร'});
+  else if(r.len>60)tips.push({k:'mid',m:'ชื่อยาวเกิน 60 ตัว อาจโดนตัดบนมือถือ'});
+  else tips.push({k:'good',m:'ความยาวชื่อคลิปอยู่ในช่วงที่เหมาะสม (20-60 ตัว)'});
+  if(r.hs<60)tips.push({k:'mid',m:'ลองใส่คำ Hook เช่น "วิธี", "ทำไม", "เปิดเผย"'});
+  else tips.push({k:'good',m:'มีคำ Hook ที่ดี ช่วยกระตุ้นให้คนอยากกดคลิก'});
+  if(r.ns<60)tips.push({k:'mid',m:'ลองใส่ตัวเลข เช่น "5 วิธี" หรือ "30 วัน"'});
+  tips.forEach(t=>{
+    const cc=t.k==='good'?[62,207,142]:t.k==='mid'?[240,180,41]:[248,113,113];
+    const cb=t.k==='good'?[18,42,30]:t.k==='mid'?[42,34,10]:[42,18,18];
+    doc.setFillColor(...cb);doc.roundedRect(M,y,W-M*2,10,2,2,'F');
+    doc.setDrawColor(...cc);doc.setLineWidth(0.3);doc.line(M+1,y+1,M+1,y+9);
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...cc);
+    doc.text(t.m,M+5,y+6.5);y+=13;
+  });
+  // Footer
+  doc.setFillColor(20,20,23);doc.rect(0,282,W,15,'F');
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(88,88,104);
+  doc.text('Hook & Thumbnail Simulator v3.0  ·  สร้างโดย Claude for Anthropic',M,290);
+  doc.save(`ctr-report-${Date.now()}.pdf`);
+}
+
+// ── THEME ──
+let isLight=false;
+function toggleTheme(){
+  isLight=!isLight;
+  document.documentElement.classList.toggle('light',isLight);
+  const btn=document.getElementById('theme-btn');
+  const ic=document.getElementById('theme-icon');
+  if(isLight){ic.className='ti ti-moon';btn.innerHTML='<i class="ti ti-moon" id="theme-icon"></i> Dark';}
+  else{ic.className='ti ti-sun';btn.innerHTML='<i class="ti ti-sun" id="theme-icon"></i> Light';}
+  try{localStorage.setItem('hts4_theme',isLight?'light':'dark');}catch(e){}
+}
+(function(){
+  try{const t=localStorage.getItem('hts4_theme');if(t==='light'){isLight=false;toggleTheme();}}catch(e){}
+})();
+
+// ── HISTORY ──
+let history=[];
+try{history=JSON.parse(localStorage.getItem('hts4_history')||'[]');}catch(e){}
+
+function addHistory(r){
+  const entry={
+    id:Date.now(),
+    ts:new Date().toISOString(),
+    title:document.getElementById('ti').value||'—',
+    ch:document.getElementById('ci').value||'—',
+    plat,
+    score:r.total,
+    ls:r.ls,hs:r.hs,ns:r.ns,es:r.es,ts2:r.ts,
+    hasPic:r.hasPic
+  };
+  history.unshift(entry);
+  if(history.length>50)history.pop();
+  try{localStorage.setItem('hts4_history',JSON.stringify(history));}catch(e){}
+}
+
+function delHistory(id){
+  history=history.filter(x=>x.id!==id);
+  try{localStorage.setItem('hts4_history',JSON.stringify(history));}catch(e){}
+  renderHistory();
+}
+
+function clearHistory(){
+  if(!confirm('ลบประวัติทั้งหมด?'))return;
+  history=[];
+  try{localStorage.removeItem('hts4_history');}catch(e){}
+  renderHistory();
+}
+
+function gradeInfo(s){
+  if(s>=80)return{g:'A',col:'var(--green)',bg:'var(--green-dim)'};
+  if(s>=65)return{g:'B',col:'var(--amber)',bg:'var(--amber-dim)'};
+  if(s>=50)return{g:'C',col:'#f97316',bg:'rgba(249,115,22,0.12)'};
+  return{g:'D',col:'var(--red)',bg:'var(--red-dim)'};
+}
+
+function platLabel(p){return{ytd:'YT Desktop',ytm:'YT Mobile',tiktok:'TikTok',ig:'Instagram',fb:'Facebook'}[p]||p;}
+
+function renderHistory(){
+  const root=document.getElementById('hist-root');
+  if(!root)return;
+  if(!history.length){
+    root.innerHTML=`<div class="hist-empty"><i class="ti ti-history"></i><p>ยังไม่มีประวัติ — วิเคราะห์ CTR Score สักครั้งเพื่อเริ่มบันทึก</p></div>`;
+    return;
+  }
+  const avg=Math.round(history.reduce((a,x)=>a+x.score,0)/history.length);
+  const best=Math.max(...history.map(x=>x.score));
+  const worst=Math.min(...history.map(x=>x.score));
+  const streak=history.filter(x=>x.score>=70).length;
+
+  // Summary cards
+  const summary=`<div class="hist-summary">
+    <div class="hist-stat"><div class="hist-stat-val">${history.length}</div><div class="hist-stat-lbl">ครั้งที่วิเคราะห์</div></div>
+    <div class="hist-stat"><div class="hist-stat-val" style="color:var(--green)">${best}</div><div class="hist-stat-lbl">คะแนนสูงสุด</div></div>
+    <div class="hist-stat"><div class="hist-stat-val" style="color:var(--amber)">${avg}</div><div class="hist-stat-lbl">คะแนนเฉลี่ย</div></div>
+    <div class="hist-stat"><div class="hist-stat-val" style="color:var(--accent)">${streak}</div><div class="hist-stat-lbl">ครั้งที่ ≥ 70</div></div>
+  </div>`;
+
+  // Bar chart (last 15)
+  const chartData=history.slice(0,15).reverse();
+  const maxS=Math.max(...chartData.map(x=>x.score),1);
+  const bars=chartData.map(x=>{
+    const h=Math.round((x.score/100)*90);
+    const gi=gradeInfo(x.score);
+    const dt=new Date(x.ts);
+    const lbl=`${dt.getMonth()+1}/${dt.getDate()} ${dt.getHours()}:${String(dt.getMinutes()).padStart(2,'0')}`;
+    const tip=`${x.score}/100 — ${x.title.slice(0,20)}${x.title.length>20?'…':''}`;
+    return `<div class="hist-bar-wrap">
+      <div class="hist-bar" style="height:${h}px;background:${gi.col};opacity:0.85" data-tip="${tip}"></div>
+      <div class="hist-bar-lbl">${lbl}</div>
+    </div>`;
+  }).join('');
+  const chart=`<div class="hist-chart-wrap">
+    <div class="hist-chart-title">
+      <span><i class="ti ti-chart-bar" style="margin-right:5px"></i>คะแนน CTR ย้อนหลัง (15 ครั้งล่าสุด)</span>
+      <button class="clear-hist-btn" onclick="clearHistory()"><i class="ti ti-trash"></i> ล้างประวัติ</button>
+    </div>
+    <div class="hist-chart">${bars}</div>
+  </div>`;
+
+  // Table
+  const rows=history.map((x,i)=>{
+    const gi=gradeInfo(x.score);
+    const prev=history[i+1];
+    let trend='<span class="hist-trend trend-eq"><i class="ti ti-minus"></i></span>';
+    if(prev){
+      const diff=x.score-prev.score;
+      if(diff>0)trend=`<span class="hist-trend trend-up"><i class="ti ti-trending-up"></i>+${diff}</span>`;
+      else if(diff<0)trend=`<span class="hist-trend trend-dn"><i class="ti ti-trending-down"></i>${diff}</span>`;
+    }
+    const dt=new Date(x.ts);
+    const dateStr=`${dt.getDate()}/${dt.getMonth()+1} ${dt.getHours()}:${String(dt.getMinutes()).padStart(2,'0')}`;
+    return `<tr>
+      <td>${dateStr}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${x.title}">${x.title}</td>
+      <td><span style="font-size:9px;background:var(--surface2);border:1px solid var(--border);padding:1px 5px;border-radius:4px;color:var(--text2)">${platLabel(x.plat)}</span></td>
+      <td style="text-align:center"><div class="hist-grade" style="background:${gi.bg};color:${gi.col}">${gi.g}</div></td>
+      <td style="font-family:var(--mono);font-weight:700;color:${gi.col}">${x.score}</td>
+      <td>${trend}</td>
+      <td><button class="hist-del" onclick="delHistory(${x.id})" title="ลบ"><i class="ti ti-trash"></i></button></td>
+    </tr>`;
+  }).join('');
+  const table=`<div class="hist-list"><table>
+    <thead><tr><th>วันเวลา</th><th>ชื่อคลิป</th><th>แพลตฟอร์ม</th><th style="text-align:center">Grade</th><th>Score</th><th>เทียบครั้งก่อน</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+
+  root.innerHTML=summary+chart+table;
+}
+
+renderPresets();renderHooks();update();updateAB();renderHistory();
+</script>
+</body>
+</html>
